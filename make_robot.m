@@ -11,6 +11,8 @@ function robot = make_robot()
 % Create the manipulator
 mdl_puma560akb;
 robot = p560m;
+% mdl_ur5;
+% robot = ur5;
 % qz = [0 0 0 0 0 0];
 % robot.plot(qz)
 % [T,A] = robot.fkine(qz);

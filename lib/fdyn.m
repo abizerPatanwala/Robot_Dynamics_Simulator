@@ -37,7 +37,7 @@ for ii = 1 : n
     % Calculate the ith column of the mass matrix
     MM(:,ii) = rne(params_rne);
 end
-
+%disp(MM)
 
 % Step 2: Calculate the Centripetal/Coriolis terms using the RNE algorithm
 params_rne.jointVel = params.jointVel;
