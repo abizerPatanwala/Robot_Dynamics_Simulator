@@ -7,13 +7,7 @@ nTests = 20; % number of random test configurations
 %% Load the manipulator
 robot = make_robot();
 % Joint limits
-qlim = [-160 160;  % q(1)
-        -45  225;  % q(2)
-        -225 45; % q(3)
-        -110 170; % q(4)
-        -100 100; % q(5)
-         -266 266]; % q(6)
-qlim = qlim*(pi/180);
+qlim = robot.qlim;
 
 % Display the manipulator in the home configuration
 q = zeros(1,6);
