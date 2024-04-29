@@ -9,7 +9,7 @@ g = [0 0 -9.81]; % Gravity Vector [m/s^2]
 
 % Create the robot and display it in the home configuration
 robot = make_robot();
-robot.teach(zeros(1,6));
+% robot.teach(zeros(1,6));
 
 % Create a kinematic model of the robot
 [S,M] = make_kinematics_model(robot);
@@ -19,10 +19,10 @@ n = size(S,2); % read the number of joints
 [Mlist,Glist] = make_dynamics_model(robot);
 
 %% Define the waypoints in task space
-Target_Config = [0.051 0.538 0.618 0.0 28.7 -69.0]'; % Specified as [X,Y,Z,Roll,Pitch,Yaw](The angles are in degrees)
+Target_Config = [0.644 0.150 -0.027 60 45 30]'; % Specified as [X,Y,Z,Roll,Pitch,Yaw](The angles are in degrees)
 
 %% Define Inverse Dynamics Tracking parameter
-dt = 1e-03;
+dt = 1e-02;
 Total_Time = 2;
 payload = 1;
 
@@ -30,7 +30,7 @@ payload = 1;
 fprintf('----------------------Ik Calculation--------------------\n');
 fprintf('Calculating the Inverse Kinematics... ');
 robot.plot(zeros(1,6)); hold on;
-scatter3(Target_Config(1,1), Target_Config(2,1), Target_Config(3,1), 'filled');
+scatter3(Target_Config(1,:), Target_Config(2,:), Target_Config(3,:), 'filled');
 title('Inverse Dynamics Control');
 
 % Calculate the inverse kinematics
@@ -39,16 +39,15 @@ T(1:3,4) = Target_Config(1:3);
 T(1:3,1:3) = rotz(Target_Config(6))*roty(Target_Config(5))*rotx(Target_Config(4));
 T_Log = MatrixLog6(T);
 V_Des = [T_Log(3,2) T_Log(1,3) T_Log(2,1) T_Log(1:3,4)']'; 
-qinit = [pi/3 pi/4 pi/6 pi/3 pi/4 pi/6];
-waypoints = zeros(n,2);
-waypoints(:,2) = robot.ikine(T, 'q0', qinit);
+qinit = [0 0 0 ]
+waypoints = ikin(S, M, qinit, V_Des);
 fprintf(' IK Done.\n');
 
 %% Calculate the trajectories for the given points
 fprintf('----------------------Trajectory Generation--------------------\n');
 fprintf('Calculating the Trajectories... ');
 nbytes = fprintf('0%%');
-nPts = size(waypoints,2);
+nPts = size(Target_Config,2);
 
 % Initialize the time vector
 t  = 0 : dt : Total_Time; % total time [s]
@@ -84,7 +83,7 @@ fprintf(' Trajectory Generation Done.\n');
 %% Control the motion of the robot between 2 set points
 fprintf('----------------------Dynamic Control of a 3-DoF Arm--------------------\n');
 
-nPts = size(waypoints,2);
+nPts = size(Target_Config,2);
 % Now, for each configuration in the prescribe trajectory we will calculate the torque profile
 fprintf('Generating the Torque Profiles... ');
 nbytes = fprintf('0%%');
@@ -94,7 +93,6 @@ nbytes = fprintf('0%%');
 tau_acc = [];
 jointPos_acc = [];
 t_acc = [];
-jointAcc_Mat = [];
 
 for jj = 1 : nPts - 1
     fprintf(repmat('\b',1,nbytes));
@@ -141,16 +139,14 @@ for jj = 1 : nPts - 1
         T = fkine(S, M, jointPos_actual(:,ii), 'space');
         params_fdyn.Ftip =  AdjointMatrix(T)'*[payload*cross(T(1:3,4), -g'); -payload*g'];
         jointAcc = fdyn(params_fdyn);
-        jointAcc_Mat = [jointAcc_Mat jointAcc];
-
+  
         % Integrate the joint accelerations to get velocity and
         % position
         jointVel_actual(:,ii+1) = dt * jointAcc + jointVel_actual(:,ii);
         jointPos_actual(:,ii+1) = dt * jointVel_actual(:,ii) + jointPos_actual(:,ii);
-        % jointPos_actual(:,ii+1) = wrapToPi(jointPos_actual(:,ii+1));
+        jointPos_actual(:,ii+1) = wrapToPi(jointPos_actual(:,ii+1));
     end
-    jointAcc_Mat = [jointAcc_Mat jointAcc];
-    
+
     tau_prescribed(:,end) = tau_prescribed(:,end-1);
     tau_acc = [tau_acc tau_prescribed];
     jointPos_acc = [jointPos_acc jointPos_actual];
