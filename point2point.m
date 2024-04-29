@@ -34,8 +34,8 @@ path = [0.644 0.150 -0.027;
         0.015 0.661 -0.027]';
 
 %% Define Inverse Dynamics Tracking parameter
-dt = 1e-03;
-Total_Time = 5;
+dt = 1e-02;
+Total_Time = 2;
 payload = 1;
 
 %% Calculate IK for the given waypoints
@@ -99,10 +99,6 @@ nbytes = fprintf('0%%');
 tau_acc = [];
 jointPos_acc = [];
 t_acc = [];
-jointAcc_Matrix = [];
-Ftip = [];
-% Initialize the parameters for both inverse and forward dynamics
-
 
 for jj = 1 : nPts - 1
     fprintf(repmat('\b',1,nbytes));
@@ -136,11 +132,9 @@ for jj = 1 : nPts - 1
         params_rne.jointVel = jointVel_prescribed(:,ii, jj);
         params_rne.jointAcc = jointAcc_prescribed(:,ii, jj);
         params_rne.Ftip = zeros(6,1); % end effector wrench
-        % T = fkine(S, M, jointPos_prescribed(:,ii, jj), 'space');
-        % params_rne.Ftip = AdjointMatrix(T)'*[payload*cross(T(1:3,4), -g'); -payload*g'];
-        tau_prescribed(:,ii) = rne(params_rne);
-        Ftip = [Ftip params_rne.Ftip];
-        %fprintf('\n %d Point Calculation done', ii); 
+        T = fkine(S, M, jointPos_prescribed(:,ii, jj), 'space');
+        params_rne.Ftip = AdjointMatrix(T)'*[payload*cross(T(1:3,4), -g'); -payload*g'];
+        tau_prescribed(:,ii) = rne(params_rne); 
         
         % Feed the torques to the forward dynamics model and perform one
         % simulation step
@@ -148,12 +142,10 @@ for jj = 1 : nPts - 1
         params_fdyn.jointVel = jointVel_actual(:,ii);
         params_fdyn.tau = tau_prescribed(:,ii);
         params_fdyn.Ftip = zeros(6,1); % end effector wrench
-        % T = fkine(S, M, jointPos_actual(:,ii), 'space');
-        % params_fdyn.Ftip =  AdjointMatrix(T)'*[payload*cross(T(1:3,4), -g'); -payload*g'];
-        
+        T = fkine(S, M, jointPos_actual(:,ii), 'space');
+        params_fdyn.Ftip =  AdjointMatrix(T)'*[payload*cross(T(1:3,4), -g'); -payload*g'];
         jointAcc = fdyn(params_fdyn);
-        
-        jointAcc_Matrix = [jointAcc_Matrix jointAcc];
+  
         % Integrate the joint accelerations to get velocity and
         % position
         jointVel_actual(:,ii+1) = dt * jointAcc + jointVel_actual(:,ii);
@@ -162,7 +154,6 @@ for jj = 1 : nPts - 1
     end
 
     tau_prescribed(:,end) = tau_prescribed(:,end-1);
-    jointAcc_Matrix = [jointAcc_Matrix jointAcc];
     tau_acc = [tau_acc tau_prescribed];
     jointPos_acc = [jointPos_acc jointPos_actual];
     t_acc = [t_acc t+t(end)*(jj-1)];
@@ -177,7 +168,7 @@ fprintf('Done.\n');
 
 
 %% Display the Joint Torques
-figure(1), hold on, grid on
+figure, hold on, grid on
 plot(t_acc, tau_acc(1,:), 'Linewidth', 2);
 plot(t_acc, tau_acc(2,:), 'Linewidth', 2);
 plot(t_acc, tau_acc(3,:), 'Linewidth', 2);
@@ -189,6 +180,5 @@ xlabel('Time [s]'), ylabel('Torque [Nm]');
 legend({'Joint 1', 'Joint 2', 'Joint 3', 'Joint 4', 'Joint 5', 'Joint 6'});
 set(gca, 'FontSize', 14);
 
-figure(2), hold on, grid on
-plot(t_acc, jointAcc_Matrix, 'Linewidth', 2);
 fprintf('Program completed successfully.\n');
+
