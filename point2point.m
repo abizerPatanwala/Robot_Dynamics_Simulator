@@ -19,11 +19,12 @@ n = size(S,2); % read the number of joints
 [Mlist,Glist] = make_dynamics_model(robot);
 
 %% Define the waypoints in task space
-Target_Config = [0.546 -0.020 0.285 -18.9 17.1 5.7]'; % Specified as [X,Y,Z,Roll,Pitch,Yaw](The angles are in degrees)
+Target_Config = [-0.487 -0.120 -0.404 3.6 -3.6 -179.8]'; 
+% Specified as [X,Y,Z,Roll,Pitch,Yaw](The angles are in degrees)
 
 %% Define Inverse Dynamics Tracking parameter
 dt = 1e-03;
-Total_Time = 2;
+Total_Time = 0.5;
 payload = 1;
 
 %% Calculate IK for the given waypoints
@@ -39,9 +40,18 @@ T(1:3,4) = Target_Config(1:3);
 T(1:3,1:3) = rotz(Target_Config(6))*roty(Target_Config(5))*rotx(Target_Config(4));
 T_Log = MatrixLog6(T);
 V_Des = [T_Log(3,2) T_Log(1,3) T_Log(2,1) T_Log(1:3,4)']'; 
-qinit = [pi/3 pi/4 pi/6 pi/3 pi/4 pi/6];
+qinit = [pi/3 pi/4 pi/6 pi/3 pi/4 pi/6; 0 0 0 0 0 0; 0 pi/2 0 0 0 0; pi/2 0 0 0 0 0];
 waypoints = zeros(n,2);
-waypoints(:,2) = robot.ikine(T, 'q0', qinit);
+for i = 1:size(qinit,1)
+    curr_sol = robot.ikine(T, 'q0', qinit(i,:), 'tol', 1e-03, 'ilimit', 2000, 'quiet');
+    if ~isempty(curr_sol)
+        waypoints(:,2) = curr_sol';
+        break;
+    else
+        continue;
+    end
+end
+
 fprintf(' IK Done.\n');
 
 %% Calculate the trajectories for the given points
@@ -141,17 +151,15 @@ for jj = 1 : nPts - 1
         T = fkine(S, M, jointPos_actual(:,ii), 'space');
         params_fdyn.Ftip =  AdjointMatrix(T)'*[payload*cross(T(1:3,4), -g'); -payload*g'];
         
-        [jointAcc, MM] = fdyn(params_fdyn);
-        MM_Mat = [MM_Mat MM];
+        jointAcc = fdyn(params_fdyn);
 
         % Integrate the joint accelerations to get velocity and
         % position
-        jointVel_actual(:,ii+1) = dt * jointAcc_prescribed(:,ii, jj) + jointVel_actual(:,ii);
+        jointVel_actual(:,ii+1) = dt * jointAcc + jointVel_actual(:,ii);
         jointPos_actual(:,ii+1) = dt * jointVel_actual(:,ii) + jointPos_actual(:,ii);
         % jointPos_actual(:,ii+1) = wrapToPi(jointPos_actual(:,ii+1));
     end
-    MM_Mat = [MM_Mat MM];
-
+    
     tau_prescribed(:,end) = tau_prescribed(:,end-1);
     tau_acc = [tau_acc tau_prescribed];
     jointPos_acc = [jointPos_acc jointPos_actual];

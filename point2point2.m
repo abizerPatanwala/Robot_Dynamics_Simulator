@@ -16,25 +16,27 @@ n = size(S,2); % read the number of joints
 
 %% Define Inverse Dynamics Tracking parameter
 dt = 1e-03;
-Total_Time = 2;
+Total_Time = 0.5;
 
 %% Calculate IK for the given waypoints
-fprintf('----------------------Ik Calculation--------------------\n');
-fprintf('Calculating the Inverse Kinematics... ');
-robot.plot(zeros(1,6)); hold on;
-scatter3(Target_Config(1,1), Target_Config(2,1), Target_Config(3,1), 'filled');
-title('Inverse Dynamics Control');
-
 % Calculate the inverse kinematics
 T = eye(4);
 T(1:3,4) = path(1:3);
 T(1:3,1:3) = rotz(path(6))*roty(path(5))*rotx(path(4));
 T_Log = MatrixLog6(T);
 V_Des = [T_Log(3,2) T_Log(1,3) T_Log(2,1) T_Log(1:3,4)']'; 
-qinit = [pi/3 pi/4 pi/6 pi/3 pi/4 pi/6];
+qinit = [pi/3 pi/4 pi/6 pi/3 pi/4 pi/6; 0 0 0 0 0 0; 0 pi/2 0 0 0 0; pi/2 0 0 0 0 0; init_point'];
 waypoints = zeros(n,2);
 waypoints(:,1) = init_point;
-waypoints(:,2) = robot.ikine(T, 'q0', qinit);
+for i = 1:size(qinit,1)
+    curr_sol = robot.ikine(T, 'q0', qinit(i,:), 'tol', 1e-03, 'ilimit', 2000, 'quiet');
+    if ~isempty(curr_sol)
+        waypoints(:,2) = curr_sol';
+        break;
+    else
+        continue;
+    end
+end
 
 %% Calculate the trajectories for the given points
 nPts = size(waypoints,2);
@@ -79,7 +81,6 @@ t_acc = [];
 MM_Mat = [];
 
 for jj = 1 : nPts - 1
-    %fprintf('\n Point is %d', jj);
     % Initialize the time vector
     t  = 0 : dt : Total_Time; % total time [s]
 
@@ -121,16 +122,14 @@ for jj = 1 : nPts - 1
         params_fdyn.Ftip = zeros(6,1); % end effector wrench
         T = fkine(S, M, jointPos_actual(:,ii), 'space');
         params_fdyn.Ftip = AdjointMatrix(T)'*[cross(T(1:3,4), -Forces); -Forces]; 
-        [jointAcc, MM] = fdyn(params_fdyn);
+        jointAcc = fdyn(params_fdyn);
 
         % Integrate the joint accelerations to get velocity and
         % position
-        jointVel_actual(:,ii+1) = dt * jointAcc_prescribed(:,ii, jj) + jointVel_actual(:,ii);
+        jointVel_actual(:,ii+1) = dt * jointAcc + jointVel_actual(:,ii);
         jointPos_actual(:,ii+1) = dt * jointVel_actual(:,ii) + jointPos_actual(:,ii);
-        jointAcc_actual(:, ii+1) = jointAcc_prescribed(:,ii, jj);
+        jointAcc_actual(:, ii+1) = jointAcc;
     end
-    MM_Mat = [MM_Mat MM];
-
     tau_prescribed(:,end) = tau_prescribed(:,end-1);
     tau_acc = [tau_acc tau_prescribed];
     jointPos_acc = [jointPos_acc jointPos_actual];

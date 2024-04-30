@@ -1,4 +1,4 @@
-function [jointAcc, MM] = fdyn(params)
+function jointAcc = fdyn(params)
 %% FDYN Implements the Forward Dynamics of a Serial Kinematic Chain
 %
  % Inputs: params - a structure containing the following fields:

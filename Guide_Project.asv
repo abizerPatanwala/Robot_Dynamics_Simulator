@@ -166,7 +166,7 @@ function pushbutton1_Callback(hObject, eventdata, handles)
         plot(t_acc(1:Plot_Step:ii), tau_acc(6,1:Plot_Step:ii), 'Linewidth', 2, 'Color','k');
         % hold off;
         title('Torque Profiles');
-        xlabel('Time(sec)'), ylabel('Joint Torque(Nm)');
+        xlabel('Time(sec)'), ylabel('Joint Position(rad/sec^2)');
         xlim([t_acc(1), t_acc(end)]);
         %ylims = [min(tau_acc(1,:)), max(tau_acc(1,:)),min(tau_acc(2,:)), max(tau_acc(2,:)),min(tau_acc(3,:)), max(tau_acc(3,:))];
         %ylim([min(ylims), max(ylims)]);
