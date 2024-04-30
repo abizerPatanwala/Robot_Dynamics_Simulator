@@ -19,7 +19,8 @@ n = size(S,2); % read the number of joints
 [Mlist,Glist] = make_dynamics_model(robot);
 
 %% Define the waypoints in task space
-Target_Config = [-0.487 -0.120 -0.404 3.6 -3.6 -179.8]'; 
+Target_Config =  [-0.382 0.188 0.664 -111.6 -32.1 -15.5]';
+
 % Specified as [X,Y,Z,Roll,Pitch,Yaw](The angles are in degrees)
 
 %% Define Inverse Dynamics Tracking parameter
@@ -40,7 +41,7 @@ T(1:3,4) = Target_Config(1:3);
 T(1:3,1:3) = rotz(Target_Config(6))*roty(Target_Config(5))*rotx(Target_Config(4));
 T_Log = MatrixLog6(T);
 V_Des = [T_Log(3,2) T_Log(1,3) T_Log(2,1) T_Log(1:3,4)']'; 
-qinit = [pi/3 pi/4 pi/6 pi/3 pi/4 pi/6; 0 0 0 0 0 0; 0 pi/2 0 0 0 0; pi/2 0 0 0 0 0];
+qinit = [pi/3 pi/4 pi/6 pi/3 pi/4 pi/6; 0 0 0 0 0 0; 0 pi/2 0 0 0 0; pi/2 0 0 0 0 0; 0 0 pi/2 0 0 0];
 waypoints = zeros(n,2);
 for i = 1:size(qinit,1)
     curr_sol = robot.ikine(T, 'q0', qinit(i,:), 'tol', 1e-03, 'ilimit', 2000, 'quiet');

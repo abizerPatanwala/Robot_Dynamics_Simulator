@@ -13,18 +13,20 @@ currentPose = [currentPose(3,2) currentPose(1,3) currentPose(2,1) currentPose(1:
 targetPose = V_des;
 
 % Inverse Kinematics
-lambda = 0.8;
+lambda = 0.1;
 iter = 1;
+Sol_Found = true;
 while norm(targetPose - currentPose) > 1e-03 
-    % if iter > 2000
-    %     break;
-    % end
+     if iter > 2000
+         Sol_Found = false;
+         break;
+     end
     % Calculate jacobian of current configuration
     J = jacob0(S,currentQ);
 
     % Calculate deltaQ via LM algorithm
-    % deltaQ = J' * pinv(J*J' + lambda^2 * eye(6)) * (targetPose - currentPose);
-    deltaQ = pinv(J) * (targetPose - currentPose);
+    deltaQ = J' * pinv(J*J' + lambda^2 * eye(6)) * (targetPose - currentPose);
+    % deltaQ = pinv(J) * (targetPose - currentPose);
     
     % Update current joint variable 
     currentQ = currentQ + deltaQ';
@@ -36,4 +38,8 @@ while norm(targetPose - currentPose) > 1e-03
     currentPose = [currentPose(3,2) currentPose(1,3) currentPose(2,1) currentPose(1:3,4)']';
     iter = iter + 1;
 end
-q_sol = currentQ;
+if Sol_Found == true
+    q_sol = currentQ;
+else
+    q_sol = [];
+end
