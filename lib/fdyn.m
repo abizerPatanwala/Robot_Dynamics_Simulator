@@ -1,4 +1,4 @@
-function jointAcc = fdyn(params)
+function [jointAcc, MM] = fdyn(params)
 %% FDYN Implements the Forward Dynamics of a Serial Kinematic Chain
 %
  % Inputs: params - a structure containing the following fields:
@@ -37,6 +37,7 @@ for ii = 1 : n
     % Calculate the ith column of the mass matrix
     MM(:,ii) = rne(params_rne);
 end
+% MM = MassMatrixCalculator(params_rne.jointPos, params_rne.S, params_rne.M, params_rne.G);
 %disp(MM)
 
 % Step 2: Calculate the Centripetal/Coriolis terms using the RNE algorithm

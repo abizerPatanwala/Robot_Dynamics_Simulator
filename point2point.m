@@ -19,7 +19,7 @@ n = size(S,2); % read the number of joints
 [Mlist,Glist] = make_dynamics_model(robot);
 
 %% Define the waypoints in task space
-Target_Config = [0.051 0.538 0.618 0.0 28.7 -69.0]'; % Specified as [X,Y,Z,Roll,Pitch,Yaw](The angles are in degrees)
+Target_Config = [0.546 -0.020 0.285 -18.9 17.1 5.7]'; % Specified as [X,Y,Z,Roll,Pitch,Yaw](The angles are in degrees)
 
 %% Define Inverse Dynamics Tracking parameter
 dt = 1e-03;
@@ -94,7 +94,7 @@ nbytes = fprintf('0%%');
 tau_acc = [];
 jointPos_acc = [];
 t_acc = [];
-jointAcc_Mat = [];
+MM_Mat = [];
 
 for jj = 1 : nPts - 1
     fprintf(repmat('\b',1,nbytes));
@@ -118,7 +118,7 @@ for jj = 1 : nPts - 1
         params_rne.S = S; % screw axes
         params_rne.M = Mlist; % link frames
         params_rne.G = Glist; % inertial properties
-        params_fdyn.g = g; % gravity
+        params_fdyn.g = g'; % gravity
         params_fdyn.S = S; % screw axes
         params_fdyn.M = Mlist; % link frames
         params_fdyn.G = Glist; % inertial properties
@@ -140,17 +140,18 @@ for jj = 1 : nPts - 1
         params_fdyn.Ftip = zeros(6,1); % end effector wrench
         T = fkine(S, M, jointPos_actual(:,ii), 'space');
         params_fdyn.Ftip =  AdjointMatrix(T)'*[payload*cross(T(1:3,4), -g'); -payload*g'];
-        jointAcc = fdyn(params_fdyn);
-        jointAcc_Mat = [jointAcc_Mat jointAcc];
+        
+        [jointAcc, MM] = fdyn(params_fdyn);
+        MM_Mat = [MM_Mat MM];
 
         % Integrate the joint accelerations to get velocity and
         % position
-        jointVel_actual(:,ii+1) = dt * jointAcc + jointVel_actual(:,ii);
+        jointVel_actual(:,ii+1) = dt * jointAcc_prescribed(:,ii, jj) + jointVel_actual(:,ii);
         jointPos_actual(:,ii+1) = dt * jointVel_actual(:,ii) + jointPos_actual(:,ii);
         % jointPos_actual(:,ii+1) = wrapToPi(jointPos_actual(:,ii+1));
     end
-    jointAcc_Mat = [jointAcc_Mat jointAcc];
-    
+    MM_Mat = [MM_Mat MM];
+
     tau_prescribed(:,end) = tau_prescribed(:,end-1);
     tau_acc = [tau_acc tau_prescribed];
     jointPos_acc = [jointPos_acc jointPos_actual];
