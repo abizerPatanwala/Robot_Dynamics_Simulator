@@ -195,7 +195,7 @@ function pushbutton1_Callback(hObject, eventdata, handles)
         end
         prev_pos = jointpos(:,end);
     else
-        h = warndlg('Provided Task space configuration is out of Workspace','IK Warning');
+        h = warndlg('warning','title');
     end
 end
 

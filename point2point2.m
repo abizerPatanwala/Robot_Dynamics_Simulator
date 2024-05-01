@@ -1,4 +1,4 @@
-function [t_acc, jointPos_acc, jointVel_acc, jointAcc_acc, tau_acc ] = point2point2(path, Forces, init_point)
+function [t_acc, jointPos_acc, jointVel_acc, jointAcc_acc, tau_acc, valid] = point2point2(path, Forces, init_point)
 %% Load the robot
 addpath('lib');
 % Create the environment
@@ -28,16 +28,19 @@ V_Des = [T_Log(3,2) T_Log(1,3) T_Log(2,1) T_Log(1:3,4)']';
 qinit = [pi/3 pi/4 pi/6 pi/3 pi/4 pi/6; 0 0 0 0 0 0; 0 pi/2 0 0 0 0; pi/2 0 0 0 0 0; init_point'];
 waypoints = zeros(n,2);
 waypoints(:,1) = init_point;
+valid = false;
 for i = 1:size(qinit,1)
     curr_sol = robot.ikine(T, 'q0', qinit(i,:), 'tol', 1e-03, 'ilimit', 2000, 'quiet');
     if ~isempty(curr_sol)
         waypoints(:,2) = curr_sol';
+        valid = true;
         break;
     else
         continue;
     end
 end
 
+if valid == true
 %% Calculate the trajectories for the given points
 nPts = size(waypoints,2);
 
@@ -136,5 +139,12 @@ for jj = 1 : nPts - 1
     jointVel_acc = [jointVel_acc jointVel_actual];
     jointAcc_acc = [jointAcc_acc jointAcc_actual];
     t_acc = [t_acc t+t(end)*(jj-1)];
+end
+else
+    t_acc = [];
+    jointPos_acc = [];
+    jointVel_acc = [];
+    jointAcc_acc = [];
+    tau_acc = [];
 end
 end
